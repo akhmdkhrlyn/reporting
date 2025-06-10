@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-// import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 
+// 1. Mendefinisikan StatefulWidget dengan benar
 class ChecklistScreen extends StatefulWidget {
   const ChecklistScreen({super.key});
 
@@ -10,6 +11,7 @@ class ChecklistScreen extends StatefulWidget {
   State<ChecklistScreen> createState() => _ChecklistScreenState();
 }
 
+// 2. Class State yang berisi semua logika dan UI
 class _ChecklistScreenState extends State<ChecklistScreen> {
   final List<Map<String, dynamic>> _checklists = [
     {'id': '1', 'title': 'Checklist Boiler', 'file': null},
@@ -22,70 +24,76 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   final _titleController = TextEditingController();
   File? _selectedFile;
 
-  // Future<void> _pickFile() async {
-  //   FilePickerResult? result = await FilePicker.platform.pickFiles();
+  // Fungsi untuk memilih file
+  Future<void> _pickFile(StateSetter setState) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-  //   if (result != null) {
-  //     setState(() {
-  //       _selectedFile = File(result.files.single.path!);
-  //     });
-  //   }
-  // }
+    if (result != null) {
+      setState(() {
+        // Menggunakan setState dari StatefulBuilder untuk update UI dialog
+        _selectedFile = File(result.files.single.path!);
+      });
+    }
+  }
 
+  // Fungsi untuk menampilkan dialog tambah checklist
   void _showAddChecklistDialog() {
+    _titleController.clear();
+    _selectedFile = null;
+
     showDialog(
       context: context,
       builder:
           (ctx) => AlertDialog(
             title: const Text('Tambah Checklist Baru'),
-            content: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama Checklist',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Nama checklist tidak boleh kosong';
-                      }
-                      return null;
-                    },
+            content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Checklist',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Nama checklist tidak boleh kosong';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _pickFile(setState),
+                        icon: const Icon(Icons.upload_file),
+                        label: Text(
+                          _selectedFile == null
+                              ? 'Pilih File'
+                              : 'File: ${_selectedFile!.path.split('/').last}',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  // ElevatedButton.icon(
-                  //   onPressed: _pickFile,
-                  //   icon: const Icon(Icons.upload_file),
-                  //   label: Text(
-                  //     _selectedFile == null
-                  //         ? 'Pilih File'
-                  //         : 'File: ${_selectedFile!.path.split('/').last}',
-                  //   ),
-                  //   style: ElevatedButton.styleFrom(
-                  //     backgroundColor: const Color(0xFF4A3780),
-                  //   ),
-                  // ),
-                ],
-              ),
+                );
+              },
             ),
             actions: [
               TextButton(
                 child: const Text('Batal'),
                 onPressed: () {
-                  _titleController.clear();
-                  _selectedFile = null;
                   Navigator.of(ctx).pop();
                 },
               ),
               ElevatedButton(
                 child: const Text('Simpan'),
                 onPressed: () {
+                  // 3. Logika simpan yang sudah diimplementasikan
                   if (_formKey.currentState!.validate()) {
                     setState(() {
+                      // Memanggil setState dari state utama untuk update list
                       final newId = Random().nextDouble().toString();
                       _checklists.add({
                         'id': newId,
@@ -93,14 +101,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         'file': _selectedFile,
                       });
                     });
-                    _titleController.clear();
-                    _selectedFile = null;
-                    Navigator.of(ctx).pop();
+                    Navigator.of(ctx).pop(); // Tutup dialog setelah simpan
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A3780),
-                ),
               ),
             ],
           ),
@@ -118,13 +121,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       _checklists.removeWhere((checklist) => checklist['id'] == id);
     });
   }
-
-  // void _addChecklist(String title) {
-  //   setState(() {
-  //     final newId = Random().nextDouble().toString();
-  //     _checklists.add({'id': newId, 'title': title});
-  //   });
-  // }
 
   void _showDeleteConfirmation(BuildContext context, String checklistId) {
     showDialog(
@@ -170,7 +166,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           ),
         ),
         title: const Text(
-          "Pratinjau Checklist", // Fixed spelling
+          "Pratinjau Checklist",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -228,7 +224,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddChecklistDialog, // Changed to use dialog
+        onPressed: _showAddChecklistDialog,
         backgroundColor: const Color(0xFF4A3780),
         child: const Icon(Icons.add, color: Colors.white),
       ),

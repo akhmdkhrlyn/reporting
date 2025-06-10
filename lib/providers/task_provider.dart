@@ -1,61 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:reporting/models/task_model.dart';
+import 'package:reporting/services/api_service.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:math';
 
 class TaskProvider with ChangeNotifier {
-  // Data dummy dengan ID unik
-  final List<Task> _tasks = [
-    Task(
-      id: 'task-1',
-      title: "Mencuci Pakaian",
-      time: "07:00 - 07:15",
-      date: DateTime.now(),
-      status: TaskStatus.onGoing,
-      tags: [
-        TaskTag(name: "Urgent", color: Colors.purple.shade100),
-        TaskTag(name: "Home", color: Colors.orange.shade100),
-      ],
-      type: 'Personal',
-    ),
-    Task(
-      id: 'task-2',
-      title: "Rapat dengan Tim",
-      time: "09:00 - 10:00",
-      date: DateTime.now(),
-      status: TaskStatus.onGoing,
-      tags: [TaskTag(name: "Work", color: Colors.blue.shade100)],
-      type: 'Private',
-    ),
-    Task(
-      id: 'task-3',
-      title: "Pergi ke Gym",
-      time: "17:00 - 18:00",
-      date: DateTime.now().add(const Duration(days: 1)),
-      status: TaskStatus.pending,
-      tags: [TaskTag(name: "Personal", color: Colors.green.shade100)],
-      type: 'Personal',
-    ),
-    Task(
-      id: 'task-4',
-      title: "Selesaikan Laporan Bulanan",
-      time: "13:00 - 15:00",
-      date: DateTime.now(),
-      status: TaskStatus.completed,
-      tags: [TaskTag(name: "Work", color: Colors.blue.shade100)],
-      type: 'Secret',
-    ),
-  ];
+  final ApiService _apiService = ApiService();
+  List<Task> _tasks = [];
+
+  TaskProvider() {
+    fetchTasks();
+  }
 
   DateTime _selectedDate = DateTime.now();
   DateTime _displayedMonth = DateTime(2025, 4);
-  String _searchQuery = ""; // Tambahkan properti untuk pencarian
+  String _searchQuery = "";
 
   // Getters
   List<Task> get allTasks => _tasks;
   DateTime get selectedDate => _selectedDate;
   DateTime get displayedMonth => _displayedMonth;
-  String get searchQuery => _searchQuery; // Getter untuk pencarian
+  String get searchQuery => _searchQuery;
 
   List<Task> get completedTasks =>
       _tasks.where((task) => task.status == TaskStatus.completed).toList();
@@ -86,50 +50,53 @@ class TaskProvider with ChangeNotifier {
         .toList();
   }
 
-  // CRUD Methods
-  void addTask(Task task) {
-    final newTask = Task(
-      id: Random().nextDouble().toString(),
-      title: task.title,
-      time: task.time,
-      date: task.date,
-      status: task.status,
-      tags: task.tags,
-      type: task.type,
-    );
-    _tasks.add(newTask);
-    notifyListeners();
-  }
-
-  void deleteTask(String taskId) {
-    _tasks.removeWhere((task) => task.id == taskId);
-    notifyListeners();
-  }
-
-  void updateTask(Task updatedTask) {
-    final taskIndex = _tasks.indexWhere((task) => task.id == updatedTask.id);
-    if (taskIndex >= 0) {
-      _tasks[taskIndex] = updatedTask;
+  // --- API Methods ---
+  Future<void> fetchTasks() async {
+    try {
+      _tasks = await _apiService.getTasks();
       notifyListeners();
+    } catch (e) {
+      print(e); // Di aplikasi nyata, tampilkan pesan error ke pengguna
     }
   }
 
+  Future<void> addTask(Task task) async {
+    try {
+      await _apiService.addTask(task);
+      await fetchTasks(); // Ambil ulang data dari server untuk sinkronisasi
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> deleteTask(String taskId) async {
+    try {
+      await _apiService.deleteTask(taskId);
+      _tasks.removeWhere((task) => task.id == taskId); // Update UI lebih cepat
+      notifyListeners();
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> updateTask(String id, String title, TaskStatus status) async {
+    try {
+      await _apiService.updateTask(id, title, status);
+      await fetchTasks(); // Ambil ulang data dari server untuk sinkronisasi
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // --- UI State Methods ---
   void selectDate(DateTime date) {
     _selectedDate = date;
     notifyListeners();
   }
 
   void setSearchQuery(String query) {
-    _searchQuery = query; // Setter untuk pencarian
+    _searchQuery = query;
     notifyListeners();
-  }
-
-  List<Task> getTasksForHour(int hour) {
-    return _tasks.where((task) {
-      final taskStartHour = int.tryParse(task.time.split('-')[0].split(':')[0]);
-      return taskStartHour == hour &&
-          DateUtils.isSameDay(task.date, _selectedDate);
-    }).toList();
   }
 
   void nextMonth() {
@@ -142,31 +109,28 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Chart Data Methods
-  // Chart Data Methods
+  // --- Chart Data Methods (Contoh data dikembalikan agar tidak error) ---
   List<ScatterSpot> get priorityChartData {
-    // KODE YANG DIPERBAIKI:
-    // Argumen posisi: x dan y dimasukkan langsung di awal.
     return [
       ScatterSpot(
-        1.0, // Nilai X
-        4.0, // Nilai Y
+        1.0,
+        4.0,
         dotPainter: FlDotCirclePainter(
           radius: 6,
           color: _getColorForType('Personal'),
         ),
       ),
       ScatterSpot(
-        2.0, // Nilai X
-        2.0, // Nilai Y
+        2.0,
+        2.0,
         dotPainter: FlDotCirclePainter(
           radius: 6,
           color: _getColorForType('Secret'),
         ),
       ),
       ScatterSpot(
-        3.0, // Nilai X
-        8.0, // Nilai Y
+        3.0,
+        8.0,
         dotPainter: FlDotCirclePainter(
           radius: 8,
           color: _getColorForType('Personal'),
@@ -191,7 +155,6 @@ class TaskProvider with ChangeNotifier {
     ];
   }
 
-  // Helper untuk warna grafik
   Color _getColorForType(String? type) {
     switch (type) {
       case "Personal":

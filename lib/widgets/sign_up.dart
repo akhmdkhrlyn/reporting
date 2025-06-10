@@ -1,8 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:reporting/widgets/sign_in.dart';
+import 'package:reporting/services/api_service.dart';
 
-// 1. Ubah menjadi StatefulWidget
 class SignupWidget extends StatefulWidget {
   const SignupWidget({super.key});
 
@@ -11,11 +11,14 @@ class SignupWidget extends StatefulWidget {
 }
 
 class _SignupWidgetState extends State<SignupWidget> {
-  // 2. Tambahkan controller dan state untuk visibilitas password
+  // Controller dan state untuk visibilitas password
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+
+  // Inisialisasi ApiService
+  final ApiService _apiService = ApiService();
 
   @override
   void dispose() {
@@ -26,23 +29,42 @@ class _SignupWidgetState extends State<SignupWidget> {
     super.dispose();
   }
 
-  // Fungsi untuk menangani proses pendaftaran
-  void _handleSignUp() {
-    // Di aplikasi nyata, di sini Anda akan memvalidasi input
-    // dan mengirim data ke backend/API.
-    final username = _usernameController.text;
-    final email = _emailController.text;
-    final password = _passwordController.text;
+  // ** HANYA ADA SATU FUNGSI _handleSignUp **
+  // Fungsi untuk menangani proses pendaftaran ke API
+  void _handleSignUp() async {
+    // Validasi dasar agar tidak mengirim data kosong
+    if (_usernameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Semua field harus diisi.')));
+      return;
+    }
 
-    print('Username: $username');
-    print('Email: $email');
-    print('Password: $password');
+    try {
+      await _apiService.register(
+        _usernameController.text,
+        _emailController.text,
+        _passwordController.text,
+      );
 
-    // Navigasi ke halaman Sign In setelah pendaftaran berhasil
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const SignInWidget()),
-    );
+      // Tampilkan pesan sukses dan navigasi ke sign in
+      // Pengecekan 'mounted' adalah praktik yang baik setelah operasi async
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pendaftaran berhasil! Silakan login.')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SignInWidget()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pendaftaran Gagal: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -68,7 +90,7 @@ class _SignupWidgetState extends State<SignupWidget> {
 
               const SizedBox(height: 69),
 
-              // 3. Gunakan TextFormField untuk input yang lebih baik
+              // Gunakan TextFormField untuk input yang lebih baik
               // Username Field
               TextFormField(
                 controller: _usernameController,
@@ -129,7 +151,7 @@ class _SignupWidgetState extends State<SignupWidget> {
                   focusedBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF5B67CA)),
                   ),
-                  // 4. Tambahkan ikon mata untuk toggle password
+                  // Tambahkan ikon mata untuk toggle password
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isPasswordVisible
@@ -150,7 +172,8 @@ class _SignupWidgetState extends State<SignupWidget> {
 
               // Tombol "Create"
               ElevatedButton(
-                onPressed: _handleSignUp,
+                onPressed:
+                    _handleSignUp, // Tombol ini sekarang memanggil fungsi yang benar
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5B67CA),
                   foregroundColor: const Color(0xFFFAFAFA),

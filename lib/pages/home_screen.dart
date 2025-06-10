@@ -1,4 +1,4 @@
-// lib/screens/home_screen.dart
+// lib/pages/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reporting/pages/add_task_screen.dart';
@@ -129,7 +129,6 @@ class HomeScreen extends StatelessWidget {
               "Today Task",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            // PERBAIKAN: Navigasi ke halaman Task
             TextButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/task');
@@ -155,14 +154,14 @@ class HomeScreen extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) {
                 final task = taskProvider.todayTasks[index];
-                return _TaskListItem(task: task, taskProvider: taskProvider);
+                // Hapus `taskProvider` dari sini karena sudah bisa diakses di dalam _TaskListItem
+                return _TaskListItem(task: task);
               },
             ),
       ],
     );
   }
 
-  // PERBAIKAN: Fungsi BottomAppBar dengan navigasi yang benar
   Widget _buildBottomAppBar(BuildContext context) {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
@@ -170,29 +169,23 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // Tombol 1: Home (Aktif)
           IconButton(
             icon: const Icon(Icons.home_filled, color: Color(0xFF4A3780)),
-            onPressed: () {
-              // Tidak melakukan apa-apa karena sudah di halaman ini
-            },
+            onPressed: () {},
           ),
-          // Tombol 2: Task Screen
           IconButton(
             icon: const Icon(Icons.list_alt, color: Colors.grey),
             onPressed: () {
               Navigator.pushNamed(context, '/task');
             },
           ),
-          const SizedBox(width: 40), // Spasi untuk FAB
-          // Tombol 3: Graphic Screen
+          const SizedBox(width: 40),
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded, color: Colors.grey),
             onPressed: () {
               Navigator.pushNamed(context, '/graphic');
             },
           ),
-          // Tombol 4: Checklist Screen
           IconButton(
             icon: const Icon(Icons.archive_outlined, color: Colors.grey),
             onPressed: () {
@@ -205,7 +198,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Widget untuk kartu di bagian "My Task"
 class _TaskSummaryCard extends StatelessWidget {
   final String title;
   final int taskCount;
@@ -255,16 +247,14 @@ class _TaskSummaryCard extends StatelessWidget {
   }
 }
 
-// Enum untuk pilihan pada menu
 enum _TaskAction { edit, delete }
 
-// Widget untuk item di bagian "Today Task"
 class _TaskListItem extends StatelessWidget {
   final Task task;
-  final TaskProvider taskProvider;
 
-  const _TaskListItem({required this.task, required this.taskProvider});
+  const _TaskListItem({required this.task});
 
+  // Dialog untuk konfirmasi hapus
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
@@ -288,6 +278,66 @@ class _TaskListItem extends StatelessWidget {
                 Navigator.of(ctx).pop();
               },
               child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ** INI FUNGSI YANG DIPERBAIKI DAN DIPINDAH KE DALAM CLASS **
+  void _showEditTaskDialog(BuildContext context, Task task) {
+    final titleController = TextEditingController(text: task.title);
+    TaskStatus status = task.status;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Task'),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Task Title'),
+                  ),
+                  const SizedBox(height: 20),
+                  DropdownButton<TaskStatus>(
+                    value: status,
+                    onChanged: (TaskStatus? newValue) {
+                      setState(() {
+                        status = newValue!;
+                      });
+                    },
+                    items:
+                        TaskStatus.values.map((TaskStatus status) {
+                          return DropdownMenuItem<TaskStatus>(
+                            value: status,
+                            child: Text(status.toString().split('.').last),
+                          );
+                        }).toList(),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Provider.of<TaskProvider>(
+                  context,
+                  listen: false,
+                ).updateTask(task.id, titleController.text, status);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Save'),
             ),
           ],
         );
@@ -362,11 +412,11 @@ class _TaskListItem extends StatelessWidget {
             ),
             PopupMenuButton<_TaskAction>(
               icon: const Icon(Icons.more_vert, color: Colors.grey),
+              // ** INI LOGIKA onSelected YANG DIPERBAIKI **
               onSelected: (_TaskAction action) {
                 switch (action) {
                   case _TaskAction.edit:
-                    // PERBAIKAN: Navigasi ke halaman edit (menggunakan halaman AddTaskScreen)
-                    Navigator.pushNamed(context, '/add', arguments: task);
+                    _showEditTaskDialog(context, task); // Panggil dialog
                     break;
                   case _TaskAction.delete:
                     _showDeleteConfirmation(context);
