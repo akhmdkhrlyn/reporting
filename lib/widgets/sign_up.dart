@@ -11,47 +11,41 @@ class SignupWidget extends StatefulWidget {
 }
 
 class _SignupWidgetState extends State<SignupWidget> {
-  // Controller dan state untuk visibilitas password
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
 
-  // Inisialisasi ApiService
   final ApiService _apiService = ApiService();
 
   @override
   void dispose() {
-    // Selalu dispose controller untuk menghindari memory leak
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  // ** HANYA ADA SATU FUNGSI _handleSignUp **
-  // Fungsi untuk menangani proses pendaftaran ke API
   void _handleSignUp() async {
-    // Validasi dasar agar tidak mengirim data kosong
-    if (_usernameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Semua field harus diisi.')));
-      return;
-    }
-
     try {
+      // Validasi input
+      if (_usernameController.text.isEmpty ||
+          _emailController.text.isEmpty ||
+          _passwordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Semua bidang harus diisi!')),
+        );
+        return;
+      }
+
+      // Panggil API untuk registrasi
       await _apiService.register(
         _usernameController.text,
         _emailController.text,
         _passwordController.text,
       );
 
-      // Tampilkan pesan sukses dan navigasi ke sign in
-      // Pengecekan 'mounted' adalah praktik yang baik setelah operasi async
-      if (!mounted) return;
+      // Tampilkan pesan sukses dan navigasi ke halaman Sign In
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pendaftaran berhasil! Silakan login.')),
       );
@@ -60,7 +54,7 @@ class _SignupWidgetState extends State<SignupWidget> {
         MaterialPageRoute(builder: (context) => const SignInWidget()),
       );
     } catch (e) {
-      if (!mounted) return;
+      // Tampilkan pesan error jika pendaftaran gagal
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Pendaftaran Gagal: ${e.toString()}')),
       );
@@ -77,7 +71,6 @@ class _SignupWidgetState extends State<SignupWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Judul "Sign Up"
               const Text(
                 'Sign Up',
                 style: TextStyle(
@@ -87,11 +80,7 @@ class _SignupWidgetState extends State<SignupWidget> {
                   color: Color(0xFF5B67CA),
                 ),
               ),
-
               const SizedBox(height: 69),
-
-              // Gunakan TextFormField untuk input yang lebih baik
-              // Username Field
               TextFormField(
                 controller: _usernameController,
                 decoration: const InputDecoration(
@@ -109,10 +98,7 @@ class _SignupWidgetState extends State<SignupWidget> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 32),
-
-              // Email ID Field
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -131,13 +117,10 @@ class _SignupWidgetState extends State<SignupWidget> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 32),
-
-              // Password Field
               TextFormField(
                 controller: _passwordController,
-                obscureText: !_isPasswordVisible, // Terapkan visibilitas
+                obscureText: !_isPasswordVisible,
                 decoration: InputDecoration(
                   icon: const Icon(Icons.lock, color: Color(0xFFC6CEDD)),
                   labelText: 'Password',
@@ -151,7 +134,6 @@ class _SignupWidgetState extends State<SignupWidget> {
                   focusedBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF5B67CA)),
                   ),
-                  // Tambahkan ikon mata untuk toggle password
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isPasswordVisible
@@ -167,13 +149,9 @@ class _SignupWidgetState extends State<SignupWidget> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 55),
-
-              // Tombol "Create"
               ElevatedButton(
-                onPressed:
-                    _handleSignUp, // Tombol ini sekarang memanggil fungsi yang benar
+                onPressed: _handleSignUp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5B67CA),
                   foregroundColor: const Color(0xFFFAFAFA),
@@ -193,10 +171,7 @@ class _SignupWidgetState extends State<SignupWidget> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 95),
-
-              // Link ke halaman "Sign In"
               Center(
                 child: Text.rich(
                   TextSpan(
