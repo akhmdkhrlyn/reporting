@@ -7,6 +7,7 @@ import 'package:reporting/widgets/sign_in.dart';
 import 'package:reporting/widgets/sign_up.dart';
 import 'package:reporting/widgets/forgot_password.dart';
 
+// Menggunakan implementasi halaman yang sebenarnya, bukan placeholder
 import 'package:reporting/pages/home_screen.dart';
 import 'package:reporting/pages/task_screen.dart';
 import 'package:reporting/pages/add_task_screen.dart';

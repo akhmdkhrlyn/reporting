@@ -14,6 +14,10 @@ class GraphicScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text("Graphic", style: TextStyle(color: Colors.black)),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -27,8 +31,17 @@ class GraphicScreen extends StatelessWidget {
           _buildActivityChartCard(),
         ],
       ),
-      bottomNavigationBar:
-          _buildBottomAppBar(), // Gunakan Bottom App Bar yang sama
+      // PERBAIKAN: Menggunakan Bottom App Bar dengan navigasi
+      bottomNavigationBar: _buildBottomAppBar(context),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/add');
+        },
+        backgroundColor: const Color(0xFF4A3780),
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
@@ -218,7 +231,8 @@ class GraphicScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomAppBar() {
+  // PERBAIKAN: Fungsi BottomAppBar dengan navigasi yang benar
+  Widget _buildBottomAppBar(BuildContext context) {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: 8.0,
@@ -229,39 +243,31 @@ class GraphicScreen extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.home_outlined, color: Colors.grey),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/home');
+            },
           ),
           IconButton(
             icon: const Icon(Icons.list_alt_outlined, color: Colors.grey),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/task');
+            },
           ),
           const SizedBox(width: 40),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.bar_chart_rounded,
-                  color: Color(0xFF4A3780),
-                ),
-                onPressed: () {},
-              ),
-              Positioned(
-                bottom: 8,
-                child: Container(
-                  height: 4,
-                  width: 4,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF4A3780),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(
+              Icons.bar_chart_rounded,
+              color: Color(0xFF4A3780), // Halaman aktif
+            ),
+            onPressed: () {
+              // Tidak melakukan apa-apa
+            },
           ),
           IconButton(
             icon: const Icon(Icons.archive_outlined, color: Colors.grey),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/checklist');
+            },
           ),
         ],
       ),

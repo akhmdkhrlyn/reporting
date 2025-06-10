@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reporting/pages/add_task_screen.dart';
+import 'package:reporting/pages/checklist_screen.dart';
+import 'package:reporting/pages/graphic_screen.dart';
+import 'package:reporting/pages/task_screen.dart';
 import '../providers/task_provider.dart';
 import '../models/task_model.dart';
 
@@ -31,10 +34,8 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: _buildBottomAppBar(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddTaskScreen()),
-          );
+          // Navigasi ke halaman tambah tugas
+          Navigator.pushNamed(context, '/add');
         },
         backgroundColor: const Color(0xFF4A3780),
         shape: const CircleBorder(),
@@ -128,7 +129,13 @@ class HomeScreen extends StatelessWidget {
               "Today Task",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            TextButton(onPressed: () {}, child: const Text("View all")),
+            // PERBAIKAN: Navigasi ke halaman Task
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/task');
+              },
+              child: const Text("View all"),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -155,7 +162,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // --- PENYESUAIAN PADA WIDGET INI ---
+  // PERBAIKAN: Fungsi BottomAppBar dengan navigasi yang benar
   Widget _buildBottomAppBar(BuildContext context) {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
@@ -163,19 +170,18 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // Tombol 1: Home (tidak melakukan apa-apa karena sudah di halaman ini)
+          // Tombol 1: Home (Aktif)
           IconButton(
             icon: const Icon(Icons.home_filled, color: Color(0xFF4A3780)),
-            onPressed: () {},
+            onPressed: () {
+              // Tidak melakukan apa-apa karena sudah di halaman ini
+            },
           ),
           // Tombol 2: Task Screen
           IconButton(
             icon: const Icon(Icons.list_alt, color: Colors.grey),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const TaskScreen()),
-              );
+              Navigator.pushNamed(context, '/task');
             },
           ),
           const SizedBox(width: 40), // Spasi untuk FAB
@@ -183,22 +189,14 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded, color: Colors.grey),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GraphicScreen()),
-              );
+              Navigator.pushNamed(context, '/graphic');
             },
           ),
           // Tombol 4: Checklist Screen
           IconButton(
             icon: const Icon(Icons.archive_outlined, color: Colors.grey),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ChecklistScreen(),
-                ),
-              );
+              Navigator.pushNamed(context, '/checklist');
             },
           ),
         ],
@@ -367,7 +365,8 @@ class _TaskListItem extends StatelessWidget {
               onSelected: (_TaskAction action) {
                 switch (action) {
                   case _TaskAction.edit:
-                    print("Edit task: ${task.title}");
+                    // PERBAIKAN: Navigasi ke halaman edit (menggunakan halaman AddTaskScreen)
+                    Navigator.pushNamed(context, '/add', arguments: task);
                     break;
                   case _TaskAction.delete:
                     _showDeleteConfirmation(context);
@@ -403,58 +402,6 @@ class _TaskListItem extends StatelessWidget {
                   ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// --- HALAMAN PLACEHOLDER BARU ---
-// Anda bisa memindahkan kelas-kelas ini ke file terpisah nantinya.
-// Contoh: lib/screens/task_screen.dart
-
-class TaskScreen extends StatelessWidget {
-  const TaskScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("All Tasks")),
-      body: const Center(
-        child: Text(
-          "Halaman Daftar Semua Tugas",
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
-
-class GraphicScreen extends StatelessWidget {
-  const GraphicScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Task Graphics")),
-      body: const Center(
-        child: Text("Halaman Grafik Tugas", style: TextStyle(fontSize: 20)),
-      ),
-    );
-  }
-}
-
-class ChecklistScreen extends StatelessWidget {
-  const ChecklistScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Archived Tasks")),
-      body: const Center(
-        child: Text(
-          "Halaman Tugas yang Diarsipkan/Selesai",
-          style: TextStyle(fontSize: 20),
         ),
       ),
     );

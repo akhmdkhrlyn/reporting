@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/task_provider.dart';
 import '../models/task_model.dart';
-import './home_screen.dart'; // Tambahkan import ini
+import 'package:reporting/pages/home_screen.dart'; // Diperlukan untuk _TaskListItem
+import 'package:reporting/pages/graphic_screen.dart';
+import 'package:reporting/pages/checklist_screen.dart';
 
 class TaskScreen extends StatelessWidget {
   const TaskScreen({super.key});
@@ -20,13 +22,13 @@ class TaskScreen extends StatelessWidget {
                 horizontal: 20.0,
                 vertical: 10.0,
               ),
-              child: _buildSearchBar(),
+              child: _buildSearchBar(context),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 children: [
-                  _buildHeader(),
+                  _buildHeader(context),
                   const SizedBox(height: 20),
                   _buildDateSelector(),
                   const SizedBox(height: 30),
@@ -37,10 +39,12 @@ class TaskScreen extends StatelessWidget {
           ],
         ),
       ),
-      // Anda bisa menggunakan bottom app bar yang sama dari layar sebelumnya
       bottomNavigationBar: _buildBottomAppBar(context),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          // PERBAIKAN: Navigasi ke halaman tambah tugas
+          Navigator.pushNamed(context, '/add');
+        },
         backgroundColor: const Color(0xFF4A3780),
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white),
@@ -49,12 +53,22 @@ class TaskScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
+    // PERBAIKAN: Menghubungkan TextField dengan provider
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
     return TextField(
+      onChanged: (value) {
+        taskProvider.setSearchQuery(value);
+      },
       decoration: InputDecoration(
         hintText: 'Search for task',
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: const Icon(Icons.close, size: 18),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.close, size: 18),
+          onPressed: () {
+            // Logika untuk membersihkan pencarian bisa ditambahkan di sini
+          },
+        ),
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(
@@ -65,7 +79,7 @@ class TaskScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -74,11 +88,28 @@ class TaskScreen extends StatelessWidget {
           style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
         ),
         TextButton.icon(
-          onPressed: () {
-            /* Logika untuk membuka date picker */
+          onPressed: () async {
+            // PERBAIKAN: Logika untuk membuka date picker
+            final taskProvider = Provider.of<TaskProvider>(
+              context,
+              listen: false,
+            );
+            final pickedDate = await showDatePicker(
+              context: context,
+              initialDate: taskProvider.selectedDate,
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2101),
+            );
+            if (pickedDate != null) {
+              taskProvider.selectDate(pickedDate);
+            }
           },
           icon: const Icon(Icons.calendar_today, size: 16),
-          label: Text(DateFormat('MMMM yyyy').format(DateTime.now())),
+          label: Consumer<TaskProvider>(
+            builder:
+                (context, provider, child) =>
+                    Text(DateFormat('MMMM yyyy').format(provider.selectedDate)),
+          ),
           style: TextButton.styleFrom(foregroundColor: Colors.grey.shade600),
         ),
       ],
@@ -95,9 +126,10 @@ class TaskScreen extends StatelessWidget {
             itemCount: 30, // Tampilkan 30 hari ke depan
             itemBuilder: (context, index) {
               final date = DateTime.now().add(Duration(days: index));
-              final isSelected =
-                  date.day == taskProvider.selectedDate.day &&
-                  date.month == taskProvider.selectedDate.month;
+              final isSelected = DateUtils.isSameDay(
+                date,
+                taskProvider.selectedDate,
+              );
 
               return GestureDetector(
                 onTap: () => taskProvider.selectDate(date),
@@ -115,10 +147,9 @@ class TaskScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        DateFormat('E')
-                            .format(date)
-                            .substring(0, 2)
-                            .toUpperCase(), // MO, TU, WE
+                        DateFormat(
+                          'E',
+                        ).format(date).substring(0, 2).toUpperCase(),
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.grey,
                           fontWeight: FontWeight.w500,
@@ -126,7 +157,7 @@ class TaskScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        DateFormat('d').format(date), // 12, 13, 14
+                        DateFormat('d').format(date),
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.black,
                           fontWeight: FontWeight.bold,
@@ -147,23 +178,45 @@ class TaskScreen extends StatelessWidget {
   Widget _buildTimeline() {
     return Consumer<TaskProvider>(
       builder: (context, taskProvider, child) {
+        // PERBAIKAN: Menggunakan tasksForSelectedDate yang sudah difilter
+        final tasks = taskProvider.tasksForSelectedDate;
+        if (tasks.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 50.0),
+            child: Center(
+              child: Column(
+                children: [
+                  const Text("You don't have any schedule"),
+                  TextButton(
+                    onPressed: () {
+                      // PERBAIKAN: Navigasi ke halaman tambah tugas
+                      Navigator.pushNamed(context, '/add');
+                    },
+                    child: const Text(
+                      "+ Add Task",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 5, // Tampilkan jadwal dari jam 7 pagi sampai jam 11
+          itemCount: tasks.length,
           itemBuilder: (context, index) {
-            final hour = 7 + index;
-            final tasksForHour = taskProvider.getTasksForHour(hour);
-
+            final task = tasks[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 20.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    width: 50,
+                    width: 60,
                     child: Text(
-                      "${hour.toString().padLeft(2, '0')}:00",
+                      task.time.split('-')[0].trim(),
                       style: const TextStyle(
                         color: Colors.grey,
                         fontWeight: FontWeight.w500,
@@ -171,19 +224,7 @@ class TaskScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 15),
-                  Expanded(
-                    child:
-                        tasksForHour.isEmpty
-                            ? _buildEmptySlot(hour)
-                            : Column(
-                              children:
-                                  tasksForHour
-                                      .map(
-                                        (task) => _TaskListItem(task: task),
-                                      ) // Widget dari layar sebelumnya
-                                      .toList(),
-                            ),
-                  ),
+                  Expanded(child: _TaskListItem(task: task)),
                 ],
               ),
             );
@@ -193,38 +234,8 @@ class TaskScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptySlot(int hour) {
-    if (hour != 9)
-      return const SizedBox.shrink(); // Hanya tampilkan di jam 9 sesuai desain
-    return Padding(
-      padding: const EdgeInsets.only(top: 15.0),
-      child: Row(
-        children: [
-          Text(
-            "You don't have any schedule",
-            style: TextStyle(color: Colors.grey.shade500),
-          ),
-          const Text(" or "),
-          TextButton(
-            onPressed: () {},
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text(
-              "+ Add",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget ini bisa di-copy paste dari file home_screen.dart
+  // PERBAIKAN: Fungsi BottomAppBar dengan navigasi yang benar
   Widget _buildBottomAppBar(BuildContext context) {
-    // Tambah parameter context
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: 8.0,
@@ -232,27 +243,29 @@ class TaskScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           IconButton(
-            icon: const Icon(Icons.home_filled, color: Colors.grey),
+            icon: const Icon(Icons.home_outlined, color: Colors.grey),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-              );
+              Navigator.pushNamed(context, '/home');
             },
           ),
           IconButton(
             icon: const Icon(Icons.list_alt, color: Color(0xFF4A3780)),
-            onPressed: () {},
+            onPressed: () {
+              // Tidak melakukan apa-apa karena sudah di halaman ini
+            },
           ),
-
           const SizedBox(width: 40),
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded, color: Colors.grey),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/graphic');
+            },
           ),
           IconButton(
             icon: const Icon(Icons.archive_outlined, color: Colors.grey),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/checklist');
+            },
           ),
         ],
       ),
@@ -260,15 +273,33 @@ class TaskScreen extends StatelessWidget {
   }
 }
 
-// Widget ini bisa diletakkan di file terpisah atau di bawah.
-// Sebaiknya, import dari file yang sama dengan home_screen agar tidak duplikat.
+// Menggunakan kembali widget _TaskListItem dari home_screen
 class _TaskListItem extends StatelessWidget {
   final Task task;
   const _TaskListItem({required this.task});
 
   @override
   Widget build(BuildContext context) {
-    // ... (Kode untuk _TaskListItem sama persis dengan jawaban sebelumnya)
-    return Card(/* ... */);
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task.title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Time: ${task.time}",
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
